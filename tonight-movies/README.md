@@ -1,4 +1,4 @@
-# Booking-cinema-website #
+# tonight-movies #
 
 ## Project setup
 ```
