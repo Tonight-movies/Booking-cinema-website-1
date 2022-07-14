@@ -1,43 +1,47 @@
-import express,{ Request, Response, NextFunction } from 'express';
-import bcrypt = require("bcryptjs");
-import JsonWebToken = require("jsonwebtoken")
+import express, { Request, Response } from 'express';
+import bcrypt from "bcryptjs"
+import JsonWebToken from "jsonwebtoken"
 import cors from "cors"
+import cookieParser from "cookie-parser"
+import connection from "./connection"
 
 const app = express();
 const port = 3000;
 const SECRET_JWT_CODE = "psmR3Hu0ihHKfqZymo1m"
 
 app.use(cors())
+app.use(cookieParser())
 app.use(express.json())
-import connection from "./connection"
+
 
 // fetch all the movies
-app.get("/movies",(req:Request,res:Response)=>{
-  const sql="SELECT * FROM MOVIES;"
-  connection.query(sql,(err,results)=>{
-    if(err){
+app.get("/movies", (req: Request, res: Response) => {
+  const sql = "SELECT * FROM MOVIES;"
+  connection.query(sql, (err, results) => {
+    if (err) {
       console.log(err)
     }
-    else{
+    else {
       res.status(200).send(results)
     }
   })
 })
 // add new user with hashed password
-app.post("/signup/user",(req:Request,res:Response)=>{
+app.post("/signup/user", (req: Request, res: Response) => {
   if (!req.body.username || !req.body.password || !req.body.email) {
     res.json({ success: false, error: "send needed params" })
     return
   }
-  const sql="INSERT INTO USERS (username,password,email) VALUES(?,?,?)"
-  
-  connection.query(sql,[req.body.username,bcrypt.hashSync(req.body.password, 10),req.body.email],(error,results)=>{
-    
-    if(error){
+  const hash = bcrypt.hashSync(req.body.password, 10);
+  const sql = "INSERT INTO USERS (username,password,email) VALUES(?,?,?)"
+
+  connection.query(sql, [req.body.username, hash, req.body.email], (error, results) => {
+
+    if (error) {
       console.log(error)
     }
-    else{
-      const token = JsonWebToken.sign({username: results.username,email: results.email }, SECRET_JWT_CODE)
+    else {
+      const token = JsonWebToken.sign({ username: results.username, email: results.email }, SECRET_JWT_CODE)
       res.status(201).send({ success: true, token: token })
     }
   })
@@ -54,15 +58,24 @@ app.post("/signup/user",(req:Request,res:Response)=>{
 //   })
 // })
 
-// get one user
-app.get("/login/user",(req:Request,res:Response)=>{
-  const sql=`SELECT * FROM USERS WHERE email=? AND password=?;`
-  connection.query(sql,[req.body.email,req.body.password],(err,results)=>{
-    if(err){
-      console.log(err)
+// user login and check if user exist or not
+app.post("/login/user", (req: Request, res: Response) => {
+  if (!req.body.username || !req.body.password) {
+    res.send({ success: false, error: "send needed params" })
+    return
+  }
+  const sql = `SELECT * FROM USERS WHERE username=? AND password=? ;`
+  connection.query(sql, [req.body.username, req.body.password], (err, results) => {
+
+    if (!results) {
+      res.send({ success: false, error: "User does not exist" })
     }
-    else{
-      res.status(200).send(results)
+    else if (!bcrypt.compareSync(req.body.password, results.hash)) {
+      res.json({ success: false, error: "Wrong password" })
+    }
+    else {
+      const token = JsonWebToken.sign({ username: results.username }, SECRET_JWT_CODE)
+      res.json({ success: true, token: token, })
     }
   })
 })
