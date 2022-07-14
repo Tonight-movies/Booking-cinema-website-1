@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `movies` (
 CREATE TABLE IF NOT EXISTS `users` (
   `idusers` INT NOT NULL AUTO_increment ,
   `username` VARCHAR(45) ,
-  `password` VARCHAR(45) ,
+  `password` VARCHAR(455) ,
   `email` VARCHAR(45) ,
   `idmovie` INT ,
   PRIMARY KEY (`idusers`),

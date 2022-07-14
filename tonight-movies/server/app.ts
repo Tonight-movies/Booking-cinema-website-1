@@ -23,15 +23,22 @@ app.get("/movies",(req:Request,res:Response)=>{
     }
   })
 })
-// add new user 
+// add new user with hashed password
 app.post("/signup/user",(req:Request,res:Response)=>{
+  if (!req.body.username || !req.body.password || !req.body.email) {
+    res.json({ success: false, error: "send needed params" })
+    return
+  }
   const sql="INSERT INTO USERS (username,password,email) VALUES(?,?,?)"
-  connection.query(sql,[req.body.username,req.body.password,req.body.email],(error,results)=>{
+  
+  connection.query(sql,[req.body.username,bcrypt.hashSync(req.body.password, 10),req.body.email],(error,results)=>{
+    
     if(error){
       console.log(error)
     }
     else{
-      res.status(201).send(results)
+      const token = JsonWebToken.sign({username: results.username,email: results.email }, SECRET_JWT_CODE)
+      res.status(201).send({ success: true, token: token })
     }
   })
 })
